@@ -113,12 +113,12 @@ cdef bint add_new_phases(object composition_sets, object removed_compsets, objec
     cdef int df_idx = 0
     cdef double largest_df = -np.inf
     cdef double[:] df_comp
-    cdef double[:,::1] current_grid_Y = current_grid.Y.values
-    cdef np.ndarray current_grid_Phase = current_grid.Phase.values
+    cdef double[:,::1] current_grid_Y = current_grid["Y"].values
+    cdef np.ndarray current_grid_Phase = current_grid["Phase"].values
     cdef unicode df_phase_name
     cdef CompositionSet compset
     cdef bint distinct = False
-    driving_forces = (chemical_potentials * current_grid.X.values).sum(axis=-1) - current_grid.GM.values
+    driving_forces = (chemical_potentials * current_grid["X"].values).sum(axis=-1) - current_grid["GM"].values
     for i in range(driving_forces.shape[0]):
         if driving_forces[i] > largest_df:
             df_comp = current_grid_Y[i]
@@ -142,7 +142,7 @@ cdef bint add_new_phases(object composition_sets, object removed_compsets, objec
             df_idx = i
     if largest_df > minimum_df:
         # To add a phase, must not be within COMP_DIFFERENCE_TOL of composition of the same phase of its type
-        df_comp = current_grid.X.values[df_idx]
+        df_comp = current_grid["X"].values[df_idx]
         df_phase_name = <unicode>current_grid_Phase[df_idx]
         for compset in composition_sets:
             if compset.phase_record.phase_name != df_phase_name:
@@ -243,12 +243,12 @@ def _solve_eq_at_conditions(comps, properties, phase_records, grid, conds_keys, 
     pure_elements = sorted(pure_elements)
 
     # Factored out via profiling
-    prop_MU_values = properties['MU'].values
-    prop_NP_values = properties['NP'].values
-    prop_Phase_values = properties['Phase'].values
-    prop_X_values = properties['X'].values
-    prop_Y_values = properties['Y'].values
-    prop_GM_values = properties['GM'].values
+    prop_MU_values = properties.MU
+    prop_NP_values = properties.NP
+    prop_Phase_values = properties.Phase
+    prop_X_values = properties.X
+    prop_Y_values = properties.Y
+    prop_GM_values = properties.GM
     phase_dof_dict = {name: len(set(phase_records[name].variables) - {v.T, v.P})
                       for name in phase_records.keys()}
     it = np.nditer(prop_GM_values, flags=['multi_index'])
@@ -258,10 +258,8 @@ def _solve_eq_at_conditions(comps, properties, phase_records, grid, conds_keys, 
         converged = False
         changed_phases = False
         cur_conds = OrderedDict(zip(conds_keys,
-                                    [np.asarray(properties['GM'].coords[b][a], dtype=np.float)
+                                    [np.asarray(properties.coords[b][a], dtype=np.float)
                                      for a, b in zip(it.multi_index, conds_keys)]))
-        if len(cur_conds) == 0:
-            cur_conds = properties['GM'].coords
         num_mass_bals = len([i for i in cur_conds.keys() if i.startswith('X_')]) + 1
         current_grid = grid.sel(P=cur_conds['P'], T=cur_conds['T'])
         # sum of independently specified components

@@ -56,11 +56,11 @@ def lower_convex_hull(global_grid, result_array):
         # Insert dependent composition value
         # TODO: Handle W(comp) as well as X(comp) here
         specified_components = {x[2:] for x in comp_conds}
-        dependent_component = set(result_array.coords['component'].values) - specified_components
+        dependent_component = set(result_array.coords['component']) - specified_components
         dependent_component = list(dependent_component)
         if len(dependent_component) != 1:
             raise ValueError('Number of dependent components is different from one')
-        insert_idx = sorted(result_array.coords['component'].values).index(dependent_component[0])
+        insert_idx = sorted(result_array.coords['component']).index(dependent_component[0])
         comp_values = np.concatenate((comp_values[..., :insert_idx],
                                       1 - np.sum(comp_values, keepdims=True, axis=-1),
                                       comp_values[..., insert_idx:]),
@@ -78,18 +78,18 @@ def lower_convex_hull(global_grid, result_array):
     # TODO: Implementation of mixed conditions
 
     # factored out via profiling
-    result_array_GM_values = result_array["GM"].values
-    result_array_points_values = result_array["points"].values
-    result_array_MU_values = result_array["MU"].values
-    result_array_NP_values = result_array["NP"].values
-    result_array_X_values = result_array["X"].values
-    result_array_Y_values = result_array["Y"].values
-    result_array_Phase_values = result_array["Phase"].values
+    result_array_GM_values = result_array.GM
+    result_array_points_values = result_array.points
+    result_array_MU_values = result_array.MU
+    result_array_NP_values = result_array.NP
+    result_array_X_values = result_array.X
+    result_array_Y_values = result_array.Y
+    result_array_Phase_values = result_array.Phase
     global_grid_GM_values = global_grid["GM"].values
     global_grid_X_values = global_grid["X"].values
     global_grid_Y_values = global_grid["Y"].values
     global_grid_Phase_values = global_grid["Phase"].values
-    num_comps = result_array.dims['component']
+    num_comps = len(result_array.coords['component'])
 
     it = np.nditer(result_array_GM_values, flags=['multi_index'])
     comp_coord_shape = tuple(len(result_array.coords[cond]) for cond in comp_conds)
@@ -130,9 +130,9 @@ def lower_convex_hull(global_grid, result_array):
                     result_array_Y_values[midx] = np.nan
                     idx_result_array_NP_values[idx] = np.nan
                 else:
-                    new_energy += idx_result_array_NP_values[idx] * global_grid.GM.values[np.index_exp[indep_idx + (points[idx],)]]
+                    new_energy += idx_result_array_NP_values[idx] * global_grid["GM"].values[np.index_exp[indep_idx + (points[idx],)]]
                     molesum += idx_result_array_NP_values[idx]
             result_array_GM_values[it.multi_index] = new_energy / molesum
         it.iternext()
-    del result_array['points']
+    result_array.remove('points')
     return result_array
