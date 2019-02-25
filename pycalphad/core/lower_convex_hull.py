@@ -78,15 +78,17 @@ def lower_convex_hull(global_grid, result_array):
     # TODO: Implementation of mixed conditions
 
     # factored out via profiling
-    result_array_GM_values = result_array.GM.values
-    result_array_points_values = result_array.points.values
-    result_array_MU_values = result_array.MU.values
-    result_array_NP_values = result_array.NP.values
-    result_array_X_values = result_array.X.values
-    result_array_Y_values = result_array.Y.values
-    result_array_Phase_values = result_array.Phase.values
-    global_grid_GM_values = global_grid.GM.values
-    global_grid_X_values = global_grid.X.values
+    result_array_GM_values = result_array["GM"].values
+    result_array_points_values = result_array["points"].values
+    result_array_MU_values = result_array["MU"].values
+    result_array_NP_values = result_array["NP"].values
+    result_array_X_values = result_array["X"].values
+    result_array_Y_values = result_array["Y"].values
+    result_array_Phase_values = result_array["Phase"].values
+    global_grid_GM_values = global_grid["GM"].values
+    global_grid_X_values = global_grid["X"].values
+    global_grid_Y_values = global_grid["Y"].values
+    global_grid_Phase_values = global_grid["Phase"].values
     num_comps = result_array.dims['component']
 
     it = np.nditer(result_array_GM_values, flags=['multi_index'])
@@ -110,9 +112,9 @@ def lower_convex_hull(global_grid, result_array):
                        idx_result_array_NP_values, idx_result_array_points_values)
         # Copy phase values out
         points = result_array_points_values[it.multi_index]
-        result_array_Phase_values[it.multi_index][:num_comps] = global_grid.Phase.values[indep_idx].take(points, axis=0)[:num_comps]
-        result_array_X_values[it.multi_index][:num_comps] = global_grid.X.values[indep_idx].take(points, axis=0)[:num_comps]
-        result_array_Y_values[it.multi_index][:num_comps] = global_grid.Y.values[indep_idx].take(points, axis=0)[:num_comps]
+        result_array_Phase_values[it.multi_index][:num_comps] = global_grid_Phase_values[indep_idx].take(points, axis=0)[:num_comps]
+        result_array_X_values[it.multi_index][:num_comps] = global_grid_X_values[indep_idx].take(points, axis=0)[:num_comps]
+        result_array_Y_values[it.multi_index][:num_comps] = global_grid_Y_values[indep_idx].take(points, axis=0)[:num_comps]
         # Special case: Sometimes fictitious points slip into the result
         # This can happen when we calculate stoichimetric phases by themselves
         if '_FAKE_' in result_array_Phase_values[it.multi_index]:
