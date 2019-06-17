@@ -6,7 +6,8 @@ from pycalphad.core.phase_rec import PhaseRecord
 from pycalphad.core.constraints import build_constraints
 from itertools import repeat
 import warnings
-
+import numpy as np
+from pycalphad.core.cache import cacheit
 
 def build_callables(dbf, comps, phases, models, parameter_symbols=None,
                     output='GM', build_gradients=True, build_hessians=False,
@@ -131,6 +132,16 @@ def build_callables(dbf, comps, phases, models, parameter_symbols=None,
         _callables['masshessfuncs'][name] = mhf
     return {output: _callables}
 
+@cacheit
+def _phase_record(comps, state_variables, site_fracs, param_values,
+                  obj, grad, hess, massobj, massgrad, masshess,
+                  consobj, consgrad, conshess, mpobj, mpgrad, mphess,
+                  num_internal_cons, num_multiphase_cons):
+    """Function for cacheable PhaseRecord construction"""
+    return PhaseRecord(comps, state_variables, site_fracs, param_values,
+                      obj, grad, hess, massobj, massgrad, masshess,
+                      consobj, consgrad, conshess, mpobj, mpgrad, mphess,
+                      num_internal_cons, num_multiphase_cons)
 
 def build_phase_records(dbf, comps, phases, conds, models, output='GM',
                         callables=None, parameters=None, verbose=False,
@@ -205,7 +216,7 @@ def build_phase_records(dbf, comps, phases, conds, models, output='GM',
         mod = models[name]
         site_fracs = mod.site_fractions
         # build constraint functions
-        cfuncs = build_constraints(mod, state_variables + site_fracs, conds, parameters=param_symbols)
+        cfuncs = build_constraints(mod, state_variables + site_fracs, tuple(conds.keys()), parameters=param_symbols)
         _constraints['internal_cons'][name] = cfuncs.internal_cons
         _constraints['internal_jac'][name] = cfuncs.internal_jac
         _constraints['internal_cons_hess'][name] = cfuncs.internal_cons_hess
@@ -214,20 +225,26 @@ def build_phase_records(dbf, comps, phases, conds, models, output='GM',
         num_internal_cons = cfuncs.num_internal_cons
         num_multiphase_cons = cfuncs.num_multiphase_cons
 
-        phase_records[name.upper()] = PhaseRecord(comps, state_variables, site_fracs, param_values,
-                                                  callables[output]['callables'][name],
-                                                  callables[output]['grad_callables'][name],
-                                                  callables[output]['hess_callables'][name],
-                                                  callables[output]['massfuncs'][name],
-                                                  callables[output]['massgradfuncs'][name],
-                                                  callables[output]['masshessfuncs'][name],
-                                                  _constraints['internal_cons'][name],
-                                                  _constraints['internal_jac'][name],
-                                                  _constraints['internal_cons_hess'][name],
-                                                  _constraints['mp_cons'][name],
-                                                  _constraints['mp_jac'][name],
-                                                  num_internal_cons,
-                                                  num_multiphase_cons)
+        # Build phase records with 0s parameter values so they will cache,
+        # then update them with the actual parameters
+        phase_rec = _phase_record(comps, state_variables, site_fracs,
+                                  np.zeros_like(param_values),
+                                  callables[output]['callables'][name],
+                                  callables[output]['grad_callables'][name],
+                                  callables[output]['hess_callables'][name],
+                                  callables[output]['massfuncs'][name],
+                                  callables[output]['massgradfuncs'][name],
+                                  callables[output]['masshessfuncs'][name],
+                                  _constraints['internal_cons'][name],
+                                  _constraints['internal_jac'][name],
+                                  _constraints['internal_cons_hess'][name],
+                                  _constraints['mp_cons'][name],
+                                  _constraints['mp_jac'][name],
+                                  _constraints['mp_cons_hess'][name],
+                                  num_internal_cons,
+                                  num_multiphase_cons)
+        phase_rec.parameters = param_values
+        phase_records[name.upper()] = phase_rec
 
         if verbose:
             print(name + ' ')

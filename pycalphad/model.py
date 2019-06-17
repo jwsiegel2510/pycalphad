@@ -376,10 +376,22 @@ class Model(object):
             constraints.append(sum(v.SiteFraction(self.phase_name, idx, spec) for spec in sublattice) - 1)
         return constraints
 
-    def get_multiphase_constraints(self, conds):
-        fixed_chempots = [cond for cond in conds.keys() if isinstance(cond, v.ChemicalPotential)]
+    def get_multiphase_constraints(self, cond_vars):
+        """
+
+        Parameters
+        ----------
+        cond_vars : list
+            Variables used in the conditions, e.g. v.T, v.X
+
+        Returns
+        -------
+        list
+            List of constraints
+        """
+        fixed_chempots = [cond for cond in cond_vars if isinstance(cond, v.ChemicalPotential)]
         multiphase_constraints = []
-        for statevar in sorted(conds.keys(), key=str):
+        for statevar in sorted(cond_vars, key=str):
             if not is_multiphase_constraint(statevar):
                 continue
             if isinstance(statevar, v.Composition):

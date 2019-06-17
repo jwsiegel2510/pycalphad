@@ -42,14 +42,14 @@ def is_multiphase_constraint(cond):
     else:
         return False
 
-
-def build_constraints(mod, variables, conds, parameters=None):
+@cacheit
+def build_constraints(mod, variables, cond_vars, parameters=None):
     internal_constraints = mod.get_internal_constraints()
     internal_constraints = [INTERNAL_CONSTRAINT_SCALING*x for x in internal_constraints]
-    multiphase_constraints = mod.get_multiphase_constraints(conds)
+    multiphase_constraints = mod.get_multiphase_constraints(cond_vars)
     multiphase_constraints = [MULTIPHASE_CONSTRAINT_SCALING*x for x in multiphase_constraints]
     # TODO: Conditions needing Hessians should probably have a 'second-order' tag or something
-    need_hess = any(type(c) in v.CONDITIONS_REQUIRING_HESSIANS for c in conds.keys())
+    need_hess = any(type(c) in v.CONDITIONS_REQUIRING_HESSIANS for c in cond_vars)
     cf_output = _build_constraint_functions(variables, internal_constraints,
                                             include_hess=need_hess, parameters=parameters)
     internal_cons = cf_output.cons_func

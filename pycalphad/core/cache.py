@@ -122,7 +122,7 @@ def lru_cache(maxsize=100, typed=False):
 
             def wrapper(*args, **kwds):
                 # size limited caching that tracks accesses by recency
-                key = make_key(args, kwds, typed)
+                key = hash(make_key(args, kwds, typed))
                 with lock:
                     link = cache_get(key)
                     if link is not None:
@@ -153,7 +153,7 @@ def lru_cache(maxsize=100, typed=False):
                         oldroot[RESULT] = result
                         # empty the oldest link and make it the new root
                         root = nonlocal_root[0] = oldroot[NEXT]
-                        oldkey = root[KEY]
+                        oldkey = hash(root[KEY])
                         oldvalue = root[RESULT]
                         root[KEY] = root[RESULT] = None
                         # now update the cache dictionary for the new links
